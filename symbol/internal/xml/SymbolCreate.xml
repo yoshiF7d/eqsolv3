@@ -1,0 +1,19 @@
+<NAME>SymbolCreate</NAME>
+<PRECEDENCE>670</PRECEDENCE>
+<ATTRIBUTES>Protected</ATTRIBUTES>
+<PROTO>
+Expr SymbolCreate(Expr expr);
+</PROTO>
+<SOURCE>
+Expr SymbolCreate(Expr expr){
+	if(!expr->child){return expr;}
+	if(expr->child->symbol->id == id_String){
+		expr->symbol = SymbolTable_getByName(expr->child->data.string);
+		data_init(&(expr->data),expr->symbol->id);
+		Expr_deleteRoot(expr->child);
+		expr->flag = 0;
+		expr->child = NULL;
+	}
+	return expr;
+}
+</SOURCE>

@@ -1,0 +1,51 @@
+<NAME>NumericQ</NAME>
+<PRECEDENCE>670</PRECEDENCE>
+<ATTRIBUTES>Protected</ATTRIBUTES>
+<PROTO>
+int NumericQ_mod(Expr expr);
+Expr NumericQ(Expr expr);
+</PROTO>
+<SOURCE>
+Expr NumericQ(Expr expr){
+	Expr e;
+	if(NumericQ_mod(expr->child)){
+		e = Expr_create(id_True);
+		Expr_replace(expr,e);
+		Expr_deleteRoot(expr);
+		expr = e;
+	}else{
+		e = Expr_create(id_False);
+		Expr_replace(expr,e);
+		Expr_deleteRoot(expr);
+		expr = e;
+	}
+	return expr;
+}
+
+int NumericQ_mod(Expr expr){
+	Expr e;
+	if(!expr){return 0;}
+	switch(expr->symbol->id){
+	  case id_Integer:
+	  case id_Real:
+		if(!(expr->flag & ef_full)){return 1;}
+		break;
+	  case id_ComplexInfinity:
+	  case id_Infinity:
+	  case id_Pi:
+	  case id_E:
+		return 1;
+	  default:
+		if(expr->symbol->attributes == NumericFunction){
+			for(e=expr->child;e;e=e->next){
+				if(!NumericQ_mod(e)){return 0;}
+			}
+			return 1;
+		}
+	}
+	return 0;
+}
+</SOURCE>
+<DOC>
+NumericQ[expr] gives True if expr is a numeric quantity, and False otherwise.
+</DOC>

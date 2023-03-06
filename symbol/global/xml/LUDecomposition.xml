@@ -1,0 +1,117 @@
+<NAME>LUDecomposition</NAME>
+<PRECEDENCE>670</PRECEDENCE>
+<ATTRIBUTES>Locked|Protected</ATTRIBUTES>
+<PROTO>
+Expr LUDecomposition(Expr expr);
+Expr LUDecomposition_mod(Expr expr);
+</PROTO>
+<SOURCE>
+Expr LUDecomposition(Expr expr){
+	Expr rtn=NULL;
+	if(!expr->child){return expr;}
+	if(expr->child->next){return expr;}
+	rtn=LUDecomposition_mod(expr->child);
+	if(rtn){
+		Expr_replace(expr,rtn);
+		Expr_delete(expr);
+		expr = rtn;
+	}
+	return expr;
+}
+Expr LUDecomposition_mod(Expr expr){
+	Expr e,ee,p,pp,ep,eep,coef,rtn=NULL,pivot=NULL;
+	int i,j,ip,ofs,c;
+	
+	if(expr->symbol->id != id_List){goto matrix;}
+	if(!expr->child){goto matrix;}
+	//r = Expr_getLength(expr->child);
+	if(!expr->child->child){goto matrix;}
+	c = Expr_getLength(expr->child->child);
+	
+	for(e=expr->child;e;e=e->next){
+		if(e->symbol->id == id_List){
+			if(c == Expr_getLength(e->child)){
+				for(ee=e->child;ee;ee=ee->next){
+					if(ee->symbol->id==id_List){
+						goto matrix;
+					}
+				}
+			}else{
+				goto matrix;
+			}
+		}else{
+			goto matrix;
+		}
+	}
+	
+	rtn = Expr_create(id_List);
+	pivot = Expr_create(id_List);
+	for(ofs=0;ofs<c;ofs++){
+		printf("ofs : %d\n",ofs);
+		for(i=0,e=expr->child;i<ofs;i++,e=e->next){}
+		for(i=0,ee = e->child;i<ofs;i++,ee=ee->next){}
+		eep = ee;
+		ep = e;
+		ip=1;
+		
+		for(j=1,p=e;p;p=p->next,j++){
+			for(i=0,pp = p->child;i<ofs;i++,pp=pp->next){}
+			if(Order_mod(pp,eep)>0){
+				eep = pp;
+				ep = p;
+				ip=j;
+			}
+		}
+		//printf("pivot : %d\n",ip);
+		Expr_appendChild(pivot,Integer_createInt(ip));
+		Expr_swapChild(expr,e,ep);
+		//TreeForm_mod(expr);
+		
+		for(e=ep->next;e;e=e->next){
+			for(i=0,ee=e->child;i<ofs;i++,ee=ee->next){}
+			Expr_insert(e,ee,coef=Expr_create(id_Times));
+			Expr_appendChild(
+			    coef,
+				Expr_appendChild(
+					Expr_create(id_Power),
+					Expr_append(Expr_copyRoot(eep),Integer_createInt(-1))
+				)
+			);
+			coef=Evaluate(coef);
+			//OutputForm_mod(coef);
+			
+			for(ee=coef->next,p=eep->next;ee;ee=ee->next,p=p->next){
+				puts(KRED); OutputForm_mod(ee); puts(KNRM);
+				Expr_insert(e,ee,pp=Expr_create(id_Plus));
+				Expr_appendChild(
+				    pp,
+					Expr_appendChild(
+						 Expr_create(id_Times),
+						 Expr_append(
+							 Expr_append(
+								 Expr_copyRoot(p),
+								 Expr_copyRoot(coef)
+							 ),
+							 Integer_createInt(-1)
+						 )
+					)
+				 );
+				pp=Evaluate(pp);
+				//OutputForm_mod(pp);
+				ee = pp;
+			}
+		}
+	}
+	Expr_appendChild(rtn,expr);
+	Expr_appendChild(rtn,pivot);
+	return rtn;
+  matrix:
+	fprintf(stderr,"LUDecomposition::matrix: Argument ");
+	FullForm_mod2(stderr,expr);
+	fprintf(stderr," at position 1 is not a non-empty rectangular matrix.\n");
+	return rtn;
+  inf:
+	fprintf(stderr,"LUDecomposition::inf: Input matrix contains an infinite entry\n");
+	return rtn;
+}
+</SOURCE>
