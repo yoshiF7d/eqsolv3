@@ -1,2 +1,3 @@
 # eqsolv3
-Wolfram Language parser + evaluator
+The most successful ugliest Wolfram Language parser + evaluator
+requires GMP MPFR readline library
